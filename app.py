@@ -1,4 +1,4 @@
-import streamlit as st
+mport streamlit as st
 import google.generativeai as genai
 import os
 from src.confidence_quiz import ConfidenceQuiz
@@ -12,9 +12,18 @@ st.set_page_config(
     layout="wide"
 )
 
+# Configure Gemini API
+if 'GEMINI_API_KEY' in st.secrets:
+    genai.configure(api_key=st.secrets['GEMINI_API_KEY'])
+else:
+    st.error("Missing Gemini API key in secrets!")
+
 # Initialize session state
 init_session_state()
-load_css()
+
+# Load custom CSS
+with open("styles/main.css") as f:
+    st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
 
 # Main title
 st.title("Interview Preparation Assistant")
@@ -36,7 +45,7 @@ with col1:
         """, unsafe_allow_html=True)
         if st.button("Start Quiz"):
             st.session_state.quiz_started = True
-            st.rerun()  # Changed from experimental_rerun
+            st.rerun()
 
     elif not st.session_state.quiz_complete:
         current_q = quiz.questions[st.session_state.current_question]
@@ -59,10 +68,10 @@ with col1:
             st.session_state.quiz_answers.append(answer[0])
             if st.session_state.current_question < len(quiz.questions) - 1:
                 st.session_state.current_question += 1
-                st.rerun()  # Changed from experimental_rerun
+                st.rerun()
             else:
                 st.session_state.quiz_complete = True
-                st.rerun()  # Changed from experimental_rerun
+                st.rerun()
 
     else:
         # Calculate and display results
@@ -92,11 +101,23 @@ with col1:
 
         if st.button("Retake Quiz"):
             reset_session_state()
-            st.rerun()  # Changed from experimental_rerun
+            st.rerun()
 
 # Right Column - Interview Practice
 with col2:
     st.header("Interview Practice")
+    
+    # Input fields for user information
+    st.subheader("Your Details")
+    age = st.number_input("Age:", min_value=0, max_value=120, value=25)
+    gender = st.selectbox("Gender:", options=["", "female", "male", "other"])
+    location = st.text_input("Location:", value="")
+    current_job_type = st.text_input("Current Job Type:", value="")
+    new_job_type = st.text_input("New Job Type:", value="")
+    
+    # Initialize interview if not started
+    if not st.session_state.interview_prompt:
+        st.session_state.interview_prompt = start_interview()
     
     # Display current question
     st.markdown(
@@ -109,31 +130,35 @@ with col2:
     # User response input
     user_response = st.text_area("Your response:", height=150)
 
-    # Submit and Reset buttons in two columns
-    col1, col2 = st.columns(2)
-    with col1:
+    # Create two columns for buttons
+    button_col1, button_col2 = st.columns(2)
+    
+    with button_col1:
         if st.button("Submit Response"):
             if user_response.strip():
                 try:
+                    # Update context with user information
+                    context = {
+                        "age": age,
+                        "gender": gender if gender else "not specified",
+                        "location": location if location else "not specified",
+                        "current_job_type": current_job_type if current_job_type else "not specified",
+                        "new_job_type": new_job_type if new_job_type else "not specified"
+                    }
+                    
                     feedback = analyze_response_and_prompt_next_question(
                         user_response,
-                        st.session_state.interview_prompt
+                        st.session_state.interview_prompt,
+                        context=context
                     )
                     st.session_state.interview_prompt = feedback
-                    st.rerun()  # Changed from experimental_rerun
+                    st.rerun()
                 except Exception as e:
                     st.error(f"An error occurred: {str(e)}")
             else:
                 st.warning("Please provide a response before submitting.")
 
-    with col2:
+    with button_col2:
         if st.button("Reset Interview"):
             st.session_state.interview_prompt = start_interview()
-            st.rerun()  # Changed from experimental_rerun
-
-if __name__ == "__main__":
-    # Configure Gemini API
-    if 'GOOGLE_API_KEY' in st.secrets:
-        genai.configure(api_key=st.secrets['GOOGLE_API_KEY'])
-    else:
-        st.error("Missing Google API key in secrets!")
+            st.rerun()
