@@ -1,4 +1,4 @@
-mport streamlit as st
+import streamlit as st
 import google.generativeai as genai
 import os
 from src.confidence_quiz import ConfidenceQuiz
