@@ -15,7 +15,7 @@ I combined the confidence assessment quiz and AI interviewer chatbot into one St
 1. Clone the repository
 
 ```bash
-git clone https://github.com/ashleylrice/interview-prep-app.git
+git clone https://github.com/ashleysally00/interview-prep-app.git
 cd interview-prep-app
 ```
 
